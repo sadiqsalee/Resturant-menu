@@ -1,0 +1,355 @@
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Plus, Minus, X, MapPin, Star, Gift } from 'lucide-react';
+
+// Restaurant Configuration (easily customizable per client)
+const RESTAURANT_CONFIG = {
+  name: "Spice Garden",
+  tagline: "Scan. Order. Relax.",
+  whatsapp: "918539014709",
+  discount: "10% off on your next visit!",
+  categories: ["Starters", "Main Course", "Breads", "Drinks", "Desserts"]
+};
+
+// Sample Menu Data (easily replaceable with real data)
+const MENU_ITEMS = [
+  {
+    id: 1,
+    category: "Starters",
+    name: "Paneer Tikka",
+    price: 180,
+    image: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&h=300&fit=crop"
+  },
+  {
+    id: 2,
+    category: "Starters",
+    name: "Veg Spring Roll",
+    price: 120,
+    image: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=300&fit=crop"
+  },
+  {
+    id: 3,
+    category: "Main Course",
+    name: "Butter Chicken",
+    price: 280,
+    image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400&h=300&fit=crop"
+  },
+  {
+    id: 4,
+    category: "Main Course",
+    name: "Dal Makhani",
+    price: 200,
+    image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop"
+  },
+  {
+    id: 5,
+    category: "Breads",
+    name: "Butter Naan",
+    price: 40,
+    image: "https://images.unsplash.com/photo-1619871252461-ae2c1e104d2c?w=400&h=300&fit=crop"
+  },
+  {
+    id: 6,
+    category: "Breads",
+    name: "Garlic Naan",
+    price: 50,
+    image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&h=300&fit=crop"
+  },
+  {
+    id: 7,
+    category: "Drinks",
+    name: "Masala Chai",
+    price: 30,
+    image: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=400&h=300&fit=crop"
+  },
+  {
+    id: 8,
+    category: "Drinks",
+    name: "Fresh Lime Soda",
+    price: 60,
+    image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&h=300&fit=crop"
+  },
+  {
+    id: 9,
+    category: "Desserts",
+    name: "Gulab Jamun",
+    price: 80,
+    image: "https://images.unsplash.com/photo-1639744091980-4149309c7842?w=400&h=300&fit=crop"
+  },
+  {
+    id: 10,
+    category: "Desserts",
+    name: "Kulfi",
+    price: 70,
+    image: "https://images.unsplash.com/photo-1596040906171-0571c994aedc?w=400&h=300&fit=crop"
+  }
+];
+
+export default function RestaurantOrderingApp() {
+  const [currentPage, setCurrentPage] = useState('landing');
+  const [cart, setCart] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [tableNumber, setTableNumber] = useState('');
+  const [notes, setNotes] = useState('');
+  const [showDiscountPopup, setShowDiscountPopup] = useState(false);
+
+  // Show discount popup after 5 seconds on menu page
+  useEffect(() => {
+    if (currentPage === 'menu') {
+      const timer = setTimeout(() => setShowDiscountPopup(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentPage]);
+
+  const addToCart = (item) => {
+    const existing = cart.find(c => c.id === item.id);
+    if (existing) {
+      setCart(cart.map(c => c.id === item.id ? {...c, qty: c.qty + 1} : c));
+    } else {
+      setCart([...cart, {...item, qty: 1}]);
+    }
+  };
+
+  const updateQty = (id, delta) => {
+    setCart(cart.map(c => c.id === id ? {...c, qty: Math.max(0, c.qty + delta)} : c).filter(c => c.qty > 0));
+  };
+
+  const getTotalAmount = () => cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+  const placeOrder = () => {
+    if (!tableNumber) {
+      alert('Please enter your table number');
+      return;
+    }
+    
+    const orderText = `🍽️ *NEW ORDER - ${RESTAURANT_CONFIG.name}*\n\n` +
+      `📍 Table: *${tableNumber}*\n\n` +
+      `🛒 *Order Items:*\n` +
+      cart.map(item => `• ${item.name} x${item.qty} - ₹${item.price * item.qty}`).join('\n') +
+      `\n\n💰 *Total: ₹${getTotalAmount()}*` +
+      (notes ? `\n\n📝 *Special Notes:*\n${notes}` : '') +
+      `\n\n✅ Order received via QR Menu`;
+    
+    const whatsappUrl = `https://wa.me/${RESTAURANT_CONFIG.whatsapp}?text=${encodeURIComponent(orderText)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    setCurrentPage('success');
+  };
+
+  const filteredItems = selectedCategory === 'All' 
+    ? MENU_ITEMS 
+    : MENU_ITEMS.filter(item => item.category === selectedCategory);
+
+  // Landing Page
+  if (currentPage === 'landing') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="mb-8">
+            <div className="w-24 h-24 bg-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-4xl">
+              🍽️
+            </div>
+            <h1 className="text-5xl font-bold text-gray-800 mb-2">{RESTAURANT_CONFIG.name}</h1>
+            <p className="text-xl text-gray-600">{RESTAURANT_CONFIG.tagline}</p>
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage('menu')}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-full text-lg shadow-lg transform transition hover:scale-105"
+          >
+            Scan Menu & Order
+          </button>
+          
+          <div className="mt-12 space-y-3 text-sm text-gray-600">
+            <p>✓ No app download required</p>
+            <p>✓ Quick & contactless ordering</p>
+            <p>✓ Order directly to kitchen</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success Page
+  if (currentPage === 'success') {
+    return (
+      <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-24 h-24 bg-green-500 rounded-full mx-auto mb-6 flex items-center justify-center text-white text-5xl">
+            ✓
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">Order Placed!</h2>
+          <p className="text-gray-600 mb-8">Your order has been sent to the kitchen. We'll serve it shortly!</p>
+          
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h3 className="font-bold text-gray-800 mb-3">Help us improve!</h3>
+            <button
+              onClick={() => window.open(`https://www.google.com/maps/search/${RESTAURANT_CONFIG.name}`, '_blank')}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 w-full mb-3"
+            >
+              <Star size={20} />
+              Rate us on Google
+            </button>
+            <p className="text-xs text-gray-500">Get {RESTAURANT_CONFIG.discount.split(' ')[0]} discount on next visit!</p>
+          </div>
+          
+          <button
+            onClick={() => {
+              setCurrentPage('menu');
+              setCart([]);
+              setTableNumber('');
+              setNotes('');
+            }}
+            className="text-orange-500 hover:text-orange-600 font-semibold"
+          >
+            ← Back to Menu
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Menu & Cart Page
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
+      <div className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-gray-800">{RESTAURANT_CONFIG.name}</h1>
+          <p className="text-sm text-gray-500">Table {tableNumber || '...'}</p>
+        </div>
+      </div>
+
+      {/* Category Filter */}
+      <div className="bg-white border-b sticky top-16 z-10 overflow-x-auto">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex gap-2">
+          <button
+            onClick={() => setSelectedCategory('All')}
+            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap ${
+              selectedCategory === 'All' 
+                ? 'bg-orange-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          {RESTAURANT_CONFIG.categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-full font-medium whitespace-nowrap ${
+                selectedCategory === cat 
+                  ? 'bg-orange-500 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Menu Items */}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 gap-4">
+          {filteredItems.map(item => {
+            const cartItem = cart.find(c => c.id === item.id);
+            return (
+              <div key={item.id} className="bg-white rounded-lg shadow-sm overflow-hidden flex">
+                <img src={item.image} alt={item.name} className="w-28 h-28 object-cover" />
+                <div className="flex-1 p-4 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                    <p className="text-orange-600 font-bold mt-1">₹{item.price}</p>
+                  </div>
+                  {cartItem ? (
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        onClick={() => updateQty(item.id, -1)}
+                        className="bg-orange-100 text-orange-600 p-1 rounded"
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <span className="font-semibold text-gray-800 w-8 text-center">{cartItem.qty}</span>
+                      <button
+                        onClick={() => updateQty(item.id, 1)}
+                        className="bg-orange-100 text-orange-600 p-1 rounded"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => addToCart(item)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg mt-2 text-sm"
+                    >
+                      Add to Cart
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Cart Summary (Fixed Bottom) */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ShoppingCart size={20} className="text-orange-500" />
+                <span className="font-semibold text-gray-800">{cart.length} items</span>
+              </div>
+              <span className="font-bold text-xl text-gray-800">₹{getTotalAmount()}</span>
+            </div>
+            
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="Table Number *"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <input
+                type="text"
+                placeholder="Special notes (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+            
+            <button
+              onClick={placeOrder}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg"
+            >
+              Place Order via WhatsApp
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Discount Popup */}
+      {showDiscountPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm relative">
+            <button
+              onClick={() => setShowDiscountPopup(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            >
+              <X size={24} />
+            </button>
+            <div className="text-center">
+              <Gift size={48} className="text-orange-500 mx-auto mb-3" />
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Special Offer!</h3>
+              <p className="text-gray-600 mb-4">{RESTAURANT_CONFIG.discount}</p>
+              <p className="text-sm text-gray-500">Just leave a Google review after your meal!</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
